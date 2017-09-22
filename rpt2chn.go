@@ -59,17 +59,17 @@ func main() {
 	realtime, err := ParseTrailingFloat(scanner.Text())
 	dieIf(err)
 
-	var fileBuffer bytes.Buffer
-	binary.Write(&fileBuffer, binary.LittleEndian, int16(-1))
-	binary.Write(&fileBuffer, binary.LittleEndian, int16(1))
-	binary.Write(&fileBuffer, binary.LittleEndian, int16(1))
+	fileBuffer := new(bytes.Buffer)
+	binary.Write(fileBuffer, binary.LittleEndian, int16(-1))
+	binary.Write(fileBuffer, binary.LittleEndian, int16(1))
+	binary.Write(fileBuffer, binary.LittleEndian, int16(1))
 	fileBuffer.Write(seconds)
-	binary.Write(&fileBuffer, binary.LittleEndian, int32(realtime*50.0))
-	binary.Write(&fileBuffer, binary.LittleEndian, int32(livetime*50.0))
+	binary.Write(fileBuffer, binary.LittleEndian, int32(realtime*50.0))
+	binary.Write(fileBuffer, binary.LittleEndian, int32(livetime*50.0))
 	fileBuffer.Write(dateTimeInfo)
-	binary.Write(&fileBuffer, binary.LittleEndian, int16(0))
+	binary.Write(fileBuffer, binary.LittleEndian, int16(0))
 
-	var channelBuffer bytes.Buffer
+	channelBuffer := new(bytes.Buffer)
 	nchans := uint16(0)
 	for scanner.Scan() {
 		line := strings.Trim(scanner.Text(), " \t\n")
@@ -81,7 +81,7 @@ func main() {
 		for _, v := range items[1:] {
 			ch, err := strconv.Atoi(v)
 			dieIf(err)
-			binary.Write(&channelBuffer, binary.LittleEndian, int32(ch))
+			binary.Write(channelBuffer, binary.LittleEndian, int32(ch))
 			nchans += 1
 		}
 	}
@@ -92,7 +92,7 @@ func main() {
 		dieIf(errors.New("number of channels is not a power of two"))
 	}
 
-	binary.Write(&fileBuffer, binary.LittleEndian, int16(nchans))
+	binary.Write(fileBuffer, binary.LittleEndian, int16(nchans))
 	fileBuffer.Write(channelBuffer.Bytes())
 
 	fout, err := os.Create(outFile)

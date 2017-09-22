@@ -70,20 +70,21 @@ func main() {
 	binary.Write(fileBuffer, binary.LittleEndian, int16(0))
 
 	channelBuffer := new(bytes.Buffer)
-	nchans := uint16(0)
+	numChannels := uint16(0)
 	for scanner.Scan() {
-		n, err := parseChannels(scanner.Text(), channelBuffer)
+		chunk, nc, err := parseChannels(scanner.Text())
 		dieIf(err)
-		nchans += n
+		channelBuffer.Write(chunk)
+		numChannels += nc
 	}
 
 	dieIf(scanner.Err())
 
-	if !isPowerOfTwo(nchans) {
+	if !isPowerOfTwo(numChannels) {
 		dieIf(errors.New("number of channels is not a power of two"))
 	}
 
-	binary.Write(fileBuffer, binary.LittleEndian, int16(nchans))
+	binary.Write(fileBuffer, binary.LittleEndian, int16(numChannels))
 	fileBuffer.Write(channelBuffer.Bytes())
 
 	fout, err := os.Create(outFile)
@@ -149,24 +150,25 @@ func parseTrailingFloat(line string) (float64, error) {
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }
 
-func parseChannels(line string, buf *bytes.Buffer) (uint16, error) {
+func parseChannels(line string) ([]byte, uint16, error) {
 
 	line = strings.Trim(line, " \t\n")
 	if len(line) == 0 {
-		return 0, nil
+		return nil, 0, nil
 	}
 
 	nchans := uint16(0)
+	buffer := new(bytes.Buffer)
 	items := strings.Fields(line)
 
 	for _, v := range items[1:] {
 		ch, err := strconv.Atoi(v)
 		if err != nil {
-			return 0, err
+			return nil, 0, err
 		}
-		binary.Write(buf, binary.LittleEndian, int32(ch))
+		binary.Write(buffer, binary.LittleEndian, uint32(ch))
 		nchans += 1
 	}
 
-	return nchans, nil
+	return buffer.Bytes(), nchans, nil
 }

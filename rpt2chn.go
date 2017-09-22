@@ -118,6 +118,10 @@ func ParseAquisitionDate(line string) ([]byte, []byte, error) {
 
 	line = strings.Trim(line, " \t\n")
 	items := strings.Split(line, " ")
+	if len(items) < 4 {
+		return nil, nil, errors.New("ParseAquisitionDate: missing items")
+	}
+
 	dt := items[2]
 	tm := items[3]
 
@@ -125,6 +129,9 @@ func ParseAquisitionDate(line string) ([]byte, []byte, error) {
 
 	var month int
 	fmt.Sscanf(dt[3:5], "%2d", &month)
+	if month < 1 || month > 12 {
+		return nil, nil, errors.New("ParseAquisitionDate: month out of range")
+	}
 
 	b := make([]byte, 0, 12)
 	b = append(b, []byte(dt[:2])...)
@@ -146,5 +153,8 @@ func ParseTrailingFloat(line string) (float64, error) {
 
 	line = strings.Trim(line, " \t\n")
 	items := strings.Split(line, " ")
+	if len(items) == 0 {
+		return 0.0, errors.New("ParseTrailingFloat: no valid decimal found")
+	}
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }

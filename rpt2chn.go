@@ -44,19 +44,19 @@ func main() {
 	scanner.Scan()
 	dieIf(scanner.Err())
 
-	dateTimeInfo, seconds, err := ParseAquisitionDate(scanner.Text())
+	dateTimeInfo, seconds, err := parseAquisitionDate(scanner.Text())
 	dieIf(err)
 
 	scanner.Scan()
 	dieIf(scanner.Err())
 
-	livetime, err := ParseTrailingFloat(scanner.Text())
+	livetime, err := parseTrailingFloat(scanner.Text())
 	dieIf(err)
 
 	scanner.Scan()
 	dieIf(scanner.Err())
 
-	realtime, err := ParseTrailingFloat(scanner.Text())
+	realtime, err := parseTrailingFloat(scanner.Text())
 	dieIf(err)
 
 	fileBuffer := new(bytes.Buffer)
@@ -115,7 +115,7 @@ func isPowerOfTwo(n uint16) bool {
 	return (n != 0) && ((n & (n - 1)) == 0)
 }
 
-func ParseAquisitionDate(line string) ([]byte, []byte, error) {
+func parseAquisitionDate(line string) ([]byte, []byte, error) {
 
 	line = strings.Trim(line, " \t\n")
 	items := strings.Split(line, " ")
@@ -123,10 +123,10 @@ func ParseAquisitionDate(line string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("ParseAquisitionDate: missing items")
 	}
 
-	dt := items[2]
-	tm := items[3]
-
-	monthNames := [...]string{"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}
+	dt, tm := items[2], items[3]
+	if len(dt) != 10 || len(tm) != 8 {
+		return nil, nil, errors.New("ParseAquisitionDate: date/time format invalid")
+	}
 
 	var month int
 	fmt.Sscanf(dt[3:5], "%2d", &month)
@@ -134,22 +134,21 @@ func ParseAquisitionDate(line string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("ParseAquisitionDate: month out of range")
 	}
 
+	monthNames := [...]string{"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}
+
 	parts := [][]byte{
 		[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5]),
 	}
 
-	b := make([]byte, 0, 12)
-	for _, r := range parts {
-		b = append(b, r...)
+	result := make([]byte, 0, 12)
+	for _, part := range parts {
+		result = append(result, part...)
 	}
 
-	s := make([]byte, 0, 2)
-	s = append(s, []byte(tm[6:8])...)
-
-	return b, s, nil
+	return result, []byte(tm[6:8]), nil
 }
 
-func ParseTrailingFloat(line string) (float64, error) {
+func parseTrailingFloat(line string) (float64, error) {
 
 	line = strings.Trim(line, " \t\n")
 	items := strings.Split(line, " ")

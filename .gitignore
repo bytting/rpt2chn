@@ -4,6 +4,7 @@
 *.so
 *.dylib
 *.chn
+rpt2chn
 
 # Test binary, build with `go test -c`
 *.test

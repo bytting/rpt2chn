@@ -134,15 +134,14 @@ func ParseAquisitionDate(line string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("ParseAquisitionDate: month out of range")
 	}
 
+	parts := [][]byte{
+		[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5]),
+	}
+
 	b := make([]byte, 0, 12)
-	b = append(b, []byte(dt[:2])...)
-	b = append(b, []byte(monthNames[month-1])...)
-	b = append(b, []byte(dt[8:10])...)
-
-	b = append(b, []byte("1")...)
-
-	b = append(b, []byte(tm[:2])...)
-	b = append(b, []byte(tm[3:5])...)
+	for _, r := range parts {
+		b = append(b, r...)
+	}
 
 	s := make([]byte, 0, 2)
 	s = append(s, []byte(tm[6:8])...)

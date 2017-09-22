@@ -149,14 +149,14 @@ func parseTrailingFloat(line string) (float64, error) {
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }
 
-func parseChannels(line string, buf *bytes.Buffer) (int, error) {
+func parseChannels(line string, buf *bytes.Buffer) (uint16, error) {
 
-	line := strings.Trim(line, " \t\n")
+	line = strings.Trim(line, " \t\n")
 	if len(line) == 0 {
 		return 0, nil
 	}
 
-	nchans := int16(0)
+	nchans := uint16(0)
 	items := strings.Fields(line)
 
 	for _, v := range items[1:] {

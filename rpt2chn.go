@@ -72,18 +72,9 @@ func main() {
 	channelBuffer := new(bytes.Buffer)
 	nchans := uint16(0)
 	for scanner.Scan() {
-		line := strings.Trim(scanner.Text(), " \t\n")
-		if len(line) == 0 {
-			continue
-		}
-
-		items := strings.Fields(line)
-		for _, v := range items[1:] {
-			ch, err := strconv.Atoi(v)
-			dieIf(err)
-			binary.Write(channelBuffer, binary.LittleEndian, int32(ch))
-			nchans += 1
-		}
+		n, err := parseChannels(scanner.Text(), channelBuffer)
+		dieIf(err)
+		nchans += n
 	}
 
 	dieIf(scanner.Err())
@@ -156,4 +147,26 @@ func parseTrailingFloat(line string) (float64, error) {
 		return 0.0, errors.New("ParseTrailingFloat: no valid decimal found")
 	}
 	return strconv.ParseFloat(items[len(items)-1], 32)
+}
+
+func parseChannels(line string, buf *bytes.Buffer) (int, error) {
+
+	line := strings.Trim(line, " \t\n")
+	if len(line) == 0 {
+		return 0, nil
+	}
+
+	nchans := int16(0)
+	items := strings.Fields(line)
+
+	for _, v := range items[1:] {
+		ch, err := strconv.Atoi(v)
+		if err != nil {
+			return 0, err
+		}
+		binary.Write(buf, binary.LittleEndian, int32(ch))
+		nchans += 1
+	}
+
+	return nchans, nil
 }

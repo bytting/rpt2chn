@@ -122,7 +122,10 @@ func main() {
 	for scanner.Scan() {
 		items := strings.Fields(scanner.Text())
 		for _, v := range items[1:] {
-			ch, _ := strconv.Atoi(v)
+			ch, err := strconv.Atoi(v)
+			if err != nil {
+				panic(err)
+			}
 			binary.Write(&channelBuffer, binary.LittleEndian, int32(ch))
 			nchans += 1
 		}

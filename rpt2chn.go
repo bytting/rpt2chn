@@ -1,3 +1,21 @@
+//  rpt2chn - Convert RPT spectrum reports to CHN spectrum format
+//  Copyright (C) 2017  NRPA
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU General Public License as published by
+//  the Free Software Foundation, either version 3 of the License, or
+//  (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//  Authors: Dag Robole,
+
 package main
 
 import (
@@ -7,6 +25,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -20,7 +39,7 @@ var (
 func init() {
 
 	flag.StringVar(&inFile, "if", "", "RPT file to read from")
-	flag.StringVar(&outFile, "of", "", "New CHN file to write to")
+	flag.StringVar(&outFile, "of", "", "CHN file to write to")
 }
 
 func main() {
@@ -43,39 +62,37 @@ func main() {
 
 	scanner.Scan()
 	dieIf(scanner.Err())
-
-	dateTimeInfo, seconds, err := parseAquisitionDate(scanner.Text())
+	hoursMinutes, seconds, err := parseAquisitionDate(scanner.Text())
 	dieIf(err)
 
 	scanner.Scan()
 	dieIf(scanner.Err())
-
 	livetime, err := parseTrailingFloat(scanner.Text())
 	dieIf(err)
 
 	scanner.Scan()
 	dieIf(scanner.Err())
-
 	realtime, err := parseTrailingFloat(scanner.Text())
 	dieIf(err)
 
-	fileBuffer := new(bytes.Buffer)
-	binary.Write(fileBuffer, binary.LittleEndian, int16(-1))
-	binary.Write(fileBuffer, binary.LittleEndian, int16(1))
-	binary.Write(fileBuffer, binary.LittleEndian, int16(1))
-	fileBuffer.Write(seconds)
-	binary.Write(fileBuffer, binary.LittleEndian, int32(realtime*50.0))
-	binary.Write(fileBuffer, binary.LittleEndian, int32(livetime*50.0))
-	fileBuffer.Write(dateTimeInfo)
-	binary.Write(fileBuffer, binary.LittleEndian, int16(0))
+	fout, err := os.Create(outFile)
+	dieIf(err)
+	defer fout.Close()
+
+	binary.Write(fout, binary.LittleEndian, int16(-1))
+	binary.Write(fout, binary.LittleEndian, int16(1))
+	binary.Write(fout, binary.LittleEndian, int16(1))
+	fout.Write(seconds)
+	binary.Write(fout, binary.LittleEndian, int32(realtime*50.0))
+	binary.Write(fout, binary.LittleEndian, int32(livetime*50.0))
+	fout.Write(hoursMinutes)
+	binary.Write(fout, binary.LittleEndian, int16(0))
 
 	channelBuffer := new(bytes.Buffer)
 	numChannels := int16(0)
 	for scanner.Scan() {
-		chunk, nc, err := parseChannels(scanner.Text())
+		err := absorbChannels(scanner.Text(), channelBuffer, &numChannels)
 		dieIf(err)
-		channelBuffer.Write(chunk)
-		numChannels += nc
 	}
 
 	dieIf(scanner.Err())
@@ -84,14 +101,8 @@ func main() {
 		dieIf(errors.New("number of channels is not a power of two"))
 	}
 
-	binary.Write(fileBuffer, binary.LittleEndian, numChannels)
-	fileBuffer.Write(channelBuffer.Bytes())
-
-	fout, err := os.Create(outFile)
-	dieIf(err)
-	defer fout.Close()
-
-	fout.Write(fileBuffer.Bytes())
+	binary.Write(fout, binary.LittleEndian, numChannels)
+	fout.Write(channelBuffer.Bytes())
 }
 
 func dieIf(err error) {
@@ -150,25 +161,23 @@ func parseTrailingFloat(line string) (float64, error) {
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }
 
-func parseChannels(line string) ([]byte, int16, error) {
+func absorbChannels(line string, w io.Writer, nchans *int16) error {
 
 	line = strings.Trim(line, " \t\n")
 	if len(line) == 0 {
-		return nil, 0, nil
+		return nil
 	}
 
-	nchans := int16(0)
-	buffer := new(bytes.Buffer)
 	items := strings.Fields(line)
 
 	for _, v := range items[1:] {
 		ch, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, 0, err
+			return err
 		}
-		binary.Write(buffer, binary.LittleEndian, uint32(ch))
-		nchans += 1
+		binary.Write(w, binary.LittleEndian, uint32(ch))
+		*nchans += 1
 	}
 
-	return buffer.Bytes(), nchans, nil
+	return nil
 }

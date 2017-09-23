@@ -139,22 +139,14 @@ func parseAquisitionDate(line string) ([]byte, []byte, error) {
 
 	monthNames := [...]string{"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}
 
-	parts := [][]byte{
-		[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5]),
-	}
+	dateParts := [][]byte{[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5])}
 
-	result := make([]byte, 0, 12)
-	for _, part := range parts {
-		result = append(result, part...)
-	}
-
-	return result, []byte(tm[6:8]), nil
+	return bytes.Join(dateParts, []byte("")), []byte(tm[6:8]), nil
 }
 
 func parseTrailingFloat(line string) (float64, error) {
 
-	line = strings.Trim(line, " \t\n")
-	items := strings.Split(line, " ")
+	items := strings.Split(strings.Trim(line, " \t\n"), " ")
 	if len(items) == 0 {
 		return 0.0, errors.New("ParseTrailingFloat: no valid decimal found")
 	}
@@ -163,12 +155,10 @@ func parseTrailingFloat(line string) (float64, error) {
 
 func absorbChannels(line string, w io.Writer, nchans *int16) error {
 
-	line = strings.Trim(line, " \t\n")
-	if len(line) == 0 {
+	items := strings.Fields(strings.Trim(line, " \t\n"))
+	if len(items) < 2 {
 		return nil
 	}
-
-	items := strings.Fields(line)
 
 	for _, v := range items[1:] {
 		ch, err := strconv.Atoi(v)

@@ -81,7 +81,6 @@ func main() {
 		err := absorbChannels(scanner.Text(), channelBuffer, &numChannels)
 		dieIf(err)
 	}
-
 	dieIf(scanner.Err())
 
 	if !isPowerOfTwo(numChannels) {
@@ -119,8 +118,7 @@ func isPowerOfTwo(n int16) bool {
 
 func parseAquisitionDate(line string) ([]byte, []byte, error) {
 
-	line = strings.Trim(line, " \t\n")
-	items := strings.Split(line, " ")
+	items := strings.Split(strings.Trim(line, " \t\n"), " ")
 	if len(items) < 4 {
 		return nil, nil, errors.New("ParseAquisitionDate: missing items")
 	}

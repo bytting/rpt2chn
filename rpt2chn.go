@@ -128,8 +128,10 @@ func parseAquisitionDate(line string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("ParseAquisitionDate: date/time format invalid")
 	}
 
-	var month int
-	fmt.Sscanf(dt[3:5], "%2d", &month)
+	month, err := strconv.Atoi(dt[3:5])
+	if err != nil {
+		return nil, nil, err
+	}
 	if month < 1 || month > 12 {
 		return nil, nil, errors.New("ParseAquisitionDate: month out of range")
 	}
@@ -147,6 +149,7 @@ func parseTrailingFloat(line string) (float64, error) {
 	if len(items) == 0 {
 		return 0.0, errors.New("ParseTrailingFloat: no valid decimal found")
 	}
+
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }
 

@@ -51,6 +51,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	dieIf := func(err error) {
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+	}
+
+	isPowerOfTwo := func(n int) bool { return (n != 0) && ((n & (n - 1)) == 0) }
+
 	_, err := os.Stat(inFile)
 	dieIf(err)
 
@@ -76,12 +85,13 @@ func main() {
 	dieIf(err)
 
 	channelBuffer := new(bytes.Buffer)
-	numChannels := int16(0)
 	for scanner.Scan() {
-		err := absorbChannels(scanner.Text(), channelBuffer, &numChannels)
+		err := absorbChannels(scanner.Text(), channelBuffer)
 		dieIf(err)
 	}
 	dieIf(scanner.Err())
+
+	numChannels := channelBuffer.Len() / 4
 
 	if !isPowerOfTwo(numChannels) {
 		dieIf(errors.New("number of channels is not a power of two"))
@@ -99,21 +109,8 @@ func main() {
 	binary.Write(fout, binary.LittleEndian, int32(livetime*50.0))
 	fout.Write(hoursMinutes)
 	binary.Write(fout, binary.LittleEndian, int16(0))
-	binary.Write(fout, binary.LittleEndian, numChannels)
+	binary.Write(fout, binary.LittleEndian, int16(numChannels))
 	fout.Write(channelBuffer.Bytes())
-}
-
-func dieIf(err error) {
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-}
-
-func isPowerOfTwo(n int16) bool {
-
-	return (n != 0) && ((n & (n - 1)) == 0)
 }
 
 func parseAquisitionDate(line string) ([]byte, []byte, error) {
@@ -132,6 +129,7 @@ func parseAquisitionDate(line string) ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if month < 1 || month > 12 {
 		return nil, nil, errors.New("ParseAquisitionDate: month out of range")
 	}
@@ -153,7 +151,7 @@ func parseTrailingFloat(line string) (float64, error) {
 	return strconv.ParseFloat(items[len(items)-1], 32)
 }
 
-func absorbChannels(line string, w io.Writer, nchans *int16) error {
+func absorbChannels(line string, w io.Writer) error {
 
 	items := strings.Fields(strings.Trim(line, " \t\n"))
 	if len(items) < 2 {
@@ -166,7 +164,6 @@ func absorbChannels(line string, w io.Writer, nchans *int16) error {
 			return err
 		}
 		binary.Write(w, binary.LittleEndian, uint32(ch))
-		*nchans += 1
 	}
 
 	return nil

@@ -69,7 +69,7 @@ func main() {
 
 	scanner.Scan()
 	dieIf(scanner.Err())
-	hoursMinutes, seconds, err := parseAquisitionDate(scanner.Text())
+	dateTime, seconds, err := parseAquisitionDate(scanner.Text())
 	dieIf(err)
 
 	scanner.Scan()
@@ -90,9 +90,7 @@ func main() {
 	dieIf(scanner.Err())
 
 	numChannels := channelBuffer.Len() / 4
-
-	isPowerOfTwo := func(n int) bool { return (n != 0) && ((n & (n - 1)) == 0) }
-	if !isPowerOfTwo(numChannels) {
+	if numChannels == 0 || numChannels&(numChannels-1) != 0 {
 		dieIf(errors.New("number of channels is not a power of two"))
 	}
 
@@ -106,7 +104,7 @@ func main() {
 	fout.Write(seconds)
 	binary.Write(fout, binary.LittleEndian, int32(realtime*50.0))
 	binary.Write(fout, binary.LittleEndian, int32(livetime*50.0))
-	fout.Write(hoursMinutes)
+	fout.Write(dateTime)
 	binary.Write(fout, binary.LittleEndian, int16(0))
 	binary.Write(fout, binary.LittleEndian, int16(numChannels))
 	fout.Write(channelBuffer.Bytes())
@@ -135,9 +133,9 @@ func parseAquisitionDate(line string) ([]byte, []byte, error) {
 
 	monthNames := [...]string{"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"}
 
-	dateParts := [][]byte{[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5])}
+	dateTimeParts := [][]byte{[]byte(dt[:2]), []byte(monthNames[month-1]), []byte(dt[8:10]), []byte("1"), []byte(tm[:2]), []byte(tm[3:5])}
 
-	return bytes.Join(dateParts, []byte("")), []byte(tm[6:8]), nil
+	return bytes.Join(dateTimeParts, []byte("")), []byte(tm[6:8]), nil
 }
 
 func parseTrailingFloat(line string) (float64, error) {

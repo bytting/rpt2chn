@@ -58,8 +58,6 @@ func main() {
 		}
 	}
 
-	isPowerOfTwo := func(n int) bool { return (n != 0) && ((n & (n - 1)) == 0) }
-
 	_, err := os.Stat(inFile)
 	dieIf(err)
 
@@ -93,6 +91,7 @@ func main() {
 
 	numChannels := channelBuffer.Len() / 4
 
+	isPowerOfTwo := func(n int) bool { return (n != 0) && ((n & (n - 1)) == 0) }
 	if !isPowerOfTwo(numChannels) {
 		dieIf(errors.New("number of channels is not a power of two"))
 	}

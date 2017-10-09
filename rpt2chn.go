@@ -114,11 +114,7 @@ func main() {
 
 	// Footer
 	binary.Write(fout, binary.LittleEndian, int16(-102))
-	blob := make([]byte, 510)
-	for i := 0; i < 510; i++ {
-		blob[i] = 0
-	}
-	fout.Write(blob)
+    fout.Write(make([]byte, 510))
 }
 
 func parseAquisitionDate(line string) ([]byte, []byte, error) {
